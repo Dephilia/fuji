@@ -16,8 +16,18 @@ height=$(herdr pane layout --pane "$HERDR_PANE_ID" | jq -r --arg p "$HERDR_PANE_
 dir=right
 [ "$width" -lt $((height * 2)) ] && dir=down
 
+report="$(dirname "$brief")/report.md"
+rm -f "$report"
+
 pane=$(herdr pane split --current --direction "$dir" --cwd "$PWD" --no-focus | jq -r '.result.pane.pane_id')
 herdr agent start "$name" --kind "$kind" --pane "$pane" >/dev/null
 
 herdr agent prompt "$name" "$(cat "$brief")" --wait --timeout "$timeout" >/dev/null
-jq -n --arg name "$name" --arg pane "$pane" --arg kind "$kind" '{name:$name, pane:$pane, kind:$kind}'
+
+if [ ! -s "$report" ]; then
+  echo "no report at $report; agent tail:" >&2
+  herdr agent read "$name" --source recent-unwrapped --lines 30 >&2 || true
+  jq -n --arg name "$name" --arg pane "$pane" --arg kind "$kind" '{name:$name, pane:$pane, kind:$kind, report:null}'
+  exit 4
+fi
+jq -n --arg name "$name" --arg pane "$pane" --arg kind "$kind" --arg report "$report" '{name:$name, pane:$pane, kind:$kind, report:$report}'

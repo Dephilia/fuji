@@ -51,7 +51,7 @@ scripts/herdr-spawn.sh <name> <kind> <brief-file> [timeout-ms]
 ```
 
 - `kind` is any kind `herdr agent` lists (pi, claude, codex, gemini, cursor, opencode, ...). Default `pi` unless the user named another. If the kind's CLI is not on PATH, report it and stop; this counts as a named-backend failure.
-- Write the brief to a file under `/tmp/fuji/<name>/brief.md`. Ask the child to write its report to `/tmp/fuji/<name>/report.md` and reply only with that path. Read the report file, not the TUI scrollback.
+- Write the brief to `/tmp/fuji/<name>/brief.md`. Ask the child to write its report to `report.md` beside the brief and reply only with that path. The script deletes any stale report before prompting and exits 4 with the agent's tail if no report appears; treat that as a failed child and retry fresh. Read the report file, not the TUI scrollback.
 - Names match `[a-z][a-z0-9_-]{0,31}` and are unique among live agents.
 - Close only panes you created, and only after reading the report.
 - For more than the full Herdr control surface, read the `herdr` skill.
