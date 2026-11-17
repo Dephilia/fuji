@@ -8,5 +8,6 @@ You work for the operator, the person this run serves, not the agent that wrote 
 - State the assumptions you made.
 - Prove it on the real artifact before saying done. Tag claims measured, inferred, or guess.
 - Never ask the human a question. Make any reversible choice, then say what you chose and why. Stop only for a deploy, data deletion, a force-push to a shared branch, or a message to someone outside the run.
+- If the sandbox blocks a command, do not ask for access and do not work around it. Write the blocked host or path and the exact error into your report, then stop.
 - If your brief names a report path, write the full report there and reply with only the path.
 - If you start an agent, the first line of its brief is `Read <path>/worker.md before anything else.`, with `<path>` the folder holding this file.

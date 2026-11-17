@@ -4,6 +4,7 @@ A tiny rigorous engineering mode for coding agents. Forked from [pstack's poteto
 
 ## What it does
 
+- Checks the sandbox boundary first: lists the hosts, paths, and credentials the work needs, adds only the missing ones to `.pi/sandbox.json`, and copies that file into child worktrees. If there is no sandbox, it skips this step.
 - Restates the goal, the smallest change, and how it will be verified.
 - Surfaces assumptions, names the data shape before code, keeps diffs surgical.
 - Proves the result on the real artifact.

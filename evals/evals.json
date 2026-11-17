@@ -52,6 +52,22 @@
         "No code under paginate/ or report/ was edited",
         "Any Herdr panes created were closed"
       ]
+    },
+    {
+      "id": 4,
+      "name": "sandbox-boundary",
+      "prompt": "/fuji add a dependency-free --json flag to report/report.py, then run the tests and push a branch to origin.",
+      "expected_output": "Boundary step runs before any build or network command: sandbox detected, inventory of needed hosts/paths, diff against sandbox_status, minimal .pi/sandbox.json proposal bundled with plan, or one-line 'no sandbox' skip.",
+      "files": [
+        "evals/fixtures/report"
+      ],
+      "assertions": [
+        "First reply states the sandbox boundary result before any build, install, or network command was run",
+        "If a sandbox exists: proposed .pi/sandbox.json contains only entries missing from sandbox_status, no '*' domain, no network.disabled, no global sandbox.json edit",
+        "If no sandbox exists: a one-line 'no sandbox' note and the step is skipped",
+        "Any keychain-bound credential (e.g. gh) is named with a fallback rather than assumed to work",
+        "Any child spawned in a worktree has .pi/sandbox.json copied into that worktree"
+      ]
     }
   ]
 }
