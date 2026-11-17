@@ -1,0 +1,57 @@
+{
+  "skill_name": "fuji",
+  "evals": [
+    {
+      "id": 1,
+      "name": "paginate-bug",
+      "prompt": "/fuji paginate() in paginate/pager.py loses the last item when the list has an odd length. fix it.",
+      "expected_output": "Root-cause fix of the range bound, regression test for odd lengths, test run shown, related page_count floor bug noticed.",
+      "files": [
+        "evals/fixtures/paginate"
+      ],
+      "assertions": [
+        "paginate([1,2,3],2) returns [[1,2],[3]] after the change (run in outputs/paginate)",
+        "Fix changes the range bound itself rather than adding a special-case guard for the last item",
+        "A regression test covering an odd-length list exists and passes",
+        "Final reply flags page_count floor bug (3 items, size 2 gives 1)",
+        "Final reply opens with the goal and the smallest change",
+        "Final reply tags claims as measured, inferred, or guess"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "report-csv",
+      "prompt": "/fuji add a --csv option to report/report.py so it prints name,score lines instead of the padded table.",
+      "expected_output": "Data shape named, dead legacy_format and one-caller wrapper removed or flagged, small diff, both modes run on scores.csv.",
+      "files": [
+        "evals/fixtures/report"
+      ],
+      "assertions": [
+        "python report/report.py report/scores.csv --csv prints alice,90 / bob,72 / carol,85",
+        "Default output without --csv is unchanged padded table",
+        "Final reply names the data shape (rows as (name, score) tuples) before or alongside the change",
+        "Dead legacy_format and/or one-caller _format_row_impl wrapper removed or explicitly flagged",
+        "Final reply tags claims as measured, inferred, or guess"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "parallel-review",
+      "prompt": "/fuji review paginate/ and report/ for bugs in parallel, one worker per folder, then give me one combined list.",
+      "expected_output": "Backend resolved and stated (Herdr here), two children with worker.md first line, reports via files, panes closed, combined deduped list with evidence tags.",
+      "files": [
+        "evals/fixtures/paginate",
+        "evals/fixtures/report"
+      ],
+      "assertions": [
+        "log.md states the delegation backend chosen and why (named > herdr > pi-subagents > inline)",
+        "Two workers were actually spawned, one per folder",
+        "Each worker brief's first line reads fuji worker.md",
+        "Combined list includes the paginate off-by-one and page_count floor bugs",
+        "Combined list includes report.py load() crash on malformed/blank lines",
+        "No code under paginate/ or report/ was edited",
+        "Any Herdr panes created were closed"
+      ]
+    }
+  ]
+}
