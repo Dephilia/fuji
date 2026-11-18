@@ -25,7 +25,7 @@ Run this once per task, before the first build, install, or network command. If 
 
 ## Rules
 
-1. **Goal and success check first.** Open the first reply, every child brief, and the final report with the goal, the smallest change that meets it, and how you will verify it. Multi-step work gets a short plan, one `step → verify: check` per line. A bug becomes "a test that reproduces it, then make it pass".
+1. **Goal and success check first.** Open the first reply, every child brief, and the final report with the goal, the smallest change that meets it, and how you will verify it. Multi-step work gets a short plan, one `step → verify: check` per line, plus a role → model table (researcher, worker, reviewer, fix worker, per-ticket overrides) the user approves with it. Pick by the work, not the role name: mechanical or well-specified work gets the cheapest capable tier, review a mid tier at minimum, and escalate one tier only for a stuck fix round or a ticket needing judgment. The oracle's model is the priciest; a child uses it only when the plan says why. A bug becomes "a test that reproduces it, seen failing, then make it pass".
 2. **Surface assumptions.** State them. If the request has more than one reading, name them; don't pick silently. Ambiguous intent → ask. Ambiguous facts → rule 7.
 3. **Data shape before code.** Name the types or structures first. Get those right and the logic follows.
 4. **Simplicity first.** Minimum code that solves the problem. No unrequested features, configurability, single-use abstractions, or handling for impossible cases. If 200 lines could be 50, rewrite.
@@ -34,7 +34,7 @@ Run this once per task, before the first build, install, or network command. If 
 7. **Run, don't guess.** A fork an experiment can settle gets a throwaway prototype, not a question or a guess.
 8. **Attack the premise.** Two fixes sharing one premise failed the same check → write the premise down and test it before a third.
 9. **Build the lever.** Repeated or bulk work gets a script, codemod, or check a reviewer can rerun.
-10. **Prove it works.** Before "done", verify against the real artifact: run it, read the value, inspect the diff. "It compiles" is not proof.
+10. **Prove it works.** Before "done", verify against the real artifact: run it, read the value, inspect the diff. "It compiles" is not proof. A verdict is VERIFIED, NOT VERIFIED, or INCONCLUSIVE; inconclusive is not a pass. A check that passes too easily makes the observation the suspect, not the system. A measured number carries ≥5 alternating runs, a median and a range, and proof the work ran inside the timed region.
 11. **Guard the context window.** Reading, building, and fan-out go to children. Keep summaries here, not raw payloads.
 
 In the final reply, name each rule that changed a decision and what it changed.
@@ -64,12 +64,14 @@ research → worker → fresh reviewer → (fix worker → fresh reviewer)* → 
 The loop is the same on every backend. Roles are researcher, worker, and reviewer. On Herdr each role is a fresh pane started with `scripts/herdr-spawn.sh`, and the role lives in the brief.
 
 1. **Research.** Send a researcher for the codebase, the web, or both in parallel. Skip this step only when the brief can already name every file and fact the worker needs.
-2. **Work.** One worker per ticket. Its brief has the goal, the acceptance check, file pointers, and the research report's path.
-3. **Review.** A fresh reviewer gets the ticket, the acceptance check, and the diff. It runs the check and returns pass or a list of findings.
-4. **Fix.** Findings go to a fresh worker with the original brief, the prior report, and the findings. Then a fresh reviewer again. After 3 failed rounds, stop and apply rule 8, or ask the user.
+2. **Work.** Record `BASE=$(git rev-parse HEAD)` in the ledger before dispatching. One worker per ticket. Its brief has the goal, the acceptance check, file pointers, and the research report's path.
+3. **Review.** Write `git diff BASE` to a file in the ticket directory. A fresh reviewer gets that diff, the brief path, the worker report path, and the acceptance check. Each finding cites the failed check, the exact command, and its output; the oracle reruns it and drops what does not reproduce.
+4. **Fix.** Confirmed findings go to a fresh worker with the original brief, the prior report, and the findings. Re-review only verifies the fixes; new findings on untouched code go to the ledger, not the loop. After 3 failed rounds, stop and apply rule 8, or ask the user.
 5. **Accept.** Read the diff and the reviewer's evidence yourself, then close the ticket.
 
 Tickets that don't depend on each other run their loops in parallel, each writer in its own worktree.
+
+One ledger per task at `/tmp/fuji/<task>/ledger.md`: the tickets, the role → model table, BASE/HEAD per ticket, the round count, and each decision as `decision — why — evidence path`. A session taking over reads the ledger first and resumes from it instead of redoing work; it still verifies inherited claims on the real artifact.
 
 ### Resolve the backend once per task
 
@@ -105,7 +107,10 @@ Use the built-in agents `scout`, `researcher`, `worker`, and `reviewer` for the 
 ### Every child
 
 - Fresh child per task, retry, or fix round. Pass the original brief, later directives, and the prior report. Resume only when the work lives in that child's checkout or process.
-- File pointers, not pasted context.
+- No pasted history: file pointers, the interfaces sibling tickets depend on, and your ruling on any ambiguity.
+- A child's reply ends with one status: DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED. Answer NEEDS_CONTEXT with a fresh child and more context; it is not a failed round.
+- A missing or empty report is a gap, never a pass. Respawn once, then record the gap.
+- Pass a model for every child explicitly: pi-subagents `model:`, Herdr `-- --model ...`. Use the planned model; an omitted model inherits the oracle's. Never retry a rejected slug. Name the model each role ran.
 - One writer per working tree. Parallel writers get separate worktrees.
 - You own the result. Read the diff yourself before accepting it.
 
