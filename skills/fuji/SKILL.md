@@ -35,7 +35,7 @@ Run this once per task, before the first build, install, or network command. If 
 8. **Attack the premise.** Two fixes sharing one premise failed the same check → write the premise down and test it before a third.
 9. **Build the lever.** Repeated or bulk work gets a script, codemod, or check a reviewer can rerun.
 10. **Prove it works.** Before "done", verify against the real artifact: run it, read the value, inspect the diff. "It compiles" is not proof.
-11. **Guard the context window.** Bulk reads and fan-out go to children. Keep summaries here, not raw payloads.
+11. **Guard the context window.** Reading, building, and fan-out go to children. Keep summaries here, not raw payloads.
 
 In the final reply, name each rule that changed a decision and what it changed.
 
@@ -47,6 +47,30 @@ Saying no is allowed. If a simpler approach exists or an idea does not earn its 
 
 ## Delegation
 
+### Oracle role
+
+When a backend resolves to Herdr or pi-subagents, the main session is the oracle. It does five things: Boundary, plan and tickets, briefs, dispatch, and accepting results. Children do all the rest: codebase and web research, edits, builds, tests, prototypes, and review.
+
+- Read a file yourself only to write a brief or check a diff. Never edit project files yourself.
+- "The context is already loaded" and "a brief costs more than the work" are not reasons to work inline. Small tickets still go to a child, and several small tickets can share one brief.
+- Work inline only when the backend is Inline or the user says so for this task.
+
+### Loop per ticket
+
+```text
+research → worker → fresh reviewer → (fix worker → fresh reviewer)* → accept
+```
+
+The loop is the same on every backend. Roles are researcher, worker, and reviewer. On Herdr each role is a fresh pane started with `scripts/herdr-spawn.sh`, and the role lives in the brief.
+
+1. **Research.** Send a researcher for the codebase, the web, or both in parallel. Skip this step only when the brief can already name every file and fact the worker needs.
+2. **Work.** One worker per ticket. Its brief has the goal, the acceptance check, file pointers, and the research report's path.
+3. **Review.** A fresh reviewer gets the ticket, the acceptance check, and the diff. It runs the check and returns pass or a list of findings.
+4. **Fix.** Findings go to a fresh worker with the original brief, the prior report, and the findings. Then a fresh reviewer again. After 3 failed rounds, stop and apply rule 8, or ask the user.
+5. **Accept.** Read the diff and the reviewer's evidence yourself, then close the ticket.
+
+Tickets that don't depend on each other run their loops in parallel, each writer in its own worktree.
+
 ### Resolve the backend once per task
 
 Pick the first that matches and say which in one line:
@@ -54,7 +78,7 @@ Pick the first that matches and say which in one line:
 1. **Named.** The user named a backend or agent kind ("use codex", "via pi-subagents", "herdr claude"). Use exactly that. If it fails, stop and report; do not fall back silently.
 2. **Herdr.** `test "${HERDR_ENV:-}" = 1 && command -v herdr` succeeds.
 3. **pi-subagents.** A `subagent` tool is available.
-4. **Inline.** None of the above. Do the work yourself and say delegation was unavailable.
+4. **Inline.** None of the above. Do the work yourself and say delegation was unavailable. This is the only backend where the main session writes code.
 
 ### Herdr
 
@@ -64,6 +88,7 @@ Use `scripts/herdr-spawn.sh` in this folder. It splits a sibling pane without st
 scripts/herdr-spawn.sh <name> <kind> <brief-file> [timeout-ms] [--cwd DIR] [-- agent-args...]
 ```
 
+- Herdr has no agent roles, so the brief carries the role. Its first lines say "Role: researcher", "Role: worker", or "Role: reviewer", and spell out what that role does in the loop.
 - `--cwd` starts the child in a worktree. Agent args pass through to the agent, for example `-- --model claude-code/claude-sonnet-5-5` for a cheaper worker model.
 - For parallel children, run each spawn in the background with `&` in one shell, then `wait`. Do not poll with `sleep`.
 
@@ -75,7 +100,7 @@ scripts/herdr-spawn.sh <name> <kind> <brief-file> [timeout-ms] [--cwd DIR] [-- a
 
 ### pi-subagents
 
-`subagent({ agent: "worker", task })` for one child, `workflow: "parallel"` for independent ones. Launches are async; native completion wakes you, so do not poll. Bind reports with `output:` instead of naming a file in the task text.
+Use the built-in agents `scout`, `researcher`, `worker`, and `reviewer` for the loop steps. `subagent({ agent, task })` runs one child, and `workflow: "parallel"` runs independent ones. A dependent chain such as worker → reviewer runs as one async scripted workflow. Launches are async; native completion wakes you, so do not poll. Bind reports with `output:` instead of naming a file in the task text.
 
 ### Every child
 
