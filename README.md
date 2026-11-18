@@ -16,7 +16,9 @@ A tiny rigorous engineering mode for coding agents. Forked from [pstack's poteto
 skills/fuji/
 ├── SKILL.md                 mode rules and backend resolution
 ├── worker.md                brief every child reads first
-└── scripts/herdr-spawn.sh   split a pane, start an agent, send a brief, wait
+└── scripts/
+    ├── herdr-spawn.sh       open a child in a children tab, send a brief, wait
+    └── herdr-close.sh       close child panes by name or pane id
 evals/
 ├── evals.json               test prompts and assertions
 └── fixtures/                small buggy projects the evals run against

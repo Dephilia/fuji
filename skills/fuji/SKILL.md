@@ -84,7 +84,7 @@ Pick the first that matches and say which in one line:
 
 ### Herdr
 
-Use `scripts/herdr-spawn.sh` in this folder. It splits a sibling pane without stealing focus, starts the agent, sends the brief, and waits.
+Use `scripts/herdr-spawn.sh` in this folder. It puts the child in a children tab without stealing focus, starts the agent, sends the brief, and waits.
 
 ```bash
 scripts/herdr-spawn.sh <name> <kind> <brief-file> [timeout-ms] [--cwd DIR] [-- agent-args...]
@@ -97,7 +97,8 @@ scripts/herdr-spawn.sh <name> <kind> <brief-file> [timeout-ms] [--cwd DIR] [-- a
 - `kind` is any kind `herdr agent` lists (pi, claude, codex, gemini, cursor, opencode, ...). Default `pi` unless the user named another. If the kind's CLI is not on PATH, report it and stop; this counts as a named-backend failure.
 - Write the brief to `/tmp/fuji/<name>/brief.md`. Ask the child to write its report to `report.md` beside the brief and reply only with that path. The script deletes any stale report before prompting and exits 4 with the agent's tail if no report appears; treat that as a failed child and retry fresh. Read the report file, not the TUI scrollback.
 - Names match `[a-z][a-z0-9_-]{0,31}` and are unique among live agents.
-- Close only panes you created, and only after reading the report.
+- Children live in one children tab per oracle pane, labelled `fuji-<oracle pane>`, in the oracle's workspace. The script creates it with `--no-focus` and splits the largest pane in it; the oracle's tab and focus stay untouched.
+- Close children with `scripts/herdr-close.sh <name-or-pane...>` after reading their reports. A tab disappears with its last pane.
 - For more than the full Herdr control surface, read the `herdr` skill.
 
 ### pi-subagents
