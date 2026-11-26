@@ -4,21 +4,18 @@ A tiny rigorous engineering mode for coding agents. Forked from [pstack's poteto
 
 ## What it does
 
-- Checks the sandbox boundary first: lists the hosts, paths, and credentials the work needs, adds only the missing ones to `.pi/sandbox.json`, and copies that file into child worktrees. If there is no sandbox, it skips this step.
+- Checks the sandbox boundary first: lists the hosts, paths, and credentials the work needs and adds only the missing ones to `.pi/sandbox.json`. If there is no sandbox, it skips this step.
 - Restates the goal, the smallest change, and how it will be verified.
 - Surfaces assumptions, names the data shape before code, keeps diffs surgical.
 - Proves the result on the real artifact.
-- Delegates through one resolved backend: a named backend, then [Herdr](https://herdr.dev) (any agent kind: pi, claude, codex, ...), then pi-subagents, then inline.
+- Delegates through pi-subagents: scout/researcher → worker → fresh reviewer, with host-run gates, worktrees for parallel writers, and `contact_supervisor` for child questions. Inline only when the `subagent` tool is unavailable.
 
 ## Layout
 
 ```text
 skills/fuji/
-├── SKILL.md                 mode rules and backend resolution
-├── worker.md                brief every child reads first
-└── scripts/
-    ├── herdr-spawn.sh       open a child in a children tab, send a brief, wait
-    └── herdr-close.sh       close child panes by name or pane id
+├── SKILL.md                 mode rules and delegation loop
+└── worker.md                brief every child reads first
 evals/
 ├── evals.json               test prompts and assertions
 └── fixtures/                small buggy projects the evals run against

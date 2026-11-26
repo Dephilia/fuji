@@ -38,19 +38,19 @@
       "id": 3,
       "name": "parallel-review",
       "prompt": "/fuji review paginate/ and report/ for bugs in parallel, one worker per folder, then give me one combined list.",
-      "expected_output": "Backend resolved and stated (Herdr here), two children with worker.md first line, reports via files, panes closed, combined deduped list with evidence tags.",
+      "expected_output": "Delegation via pi-subagents stated, two children with worker.md first line, reports bound with output:, combined deduped list with evidence tags.",
       "files": [
         "evals/fixtures/paginate",
         "evals/fixtures/report"
       ],
       "assertions": [
-        "log.md states the delegation backend chosen and why (named > herdr > pi-subagents > inline)",
+        "log.md states the delegation path (pi-subagents, or inline only if the subagent tool is unavailable)",
         "Two workers were actually spawned, one per folder",
         "Each worker brief's first line reads fuji worker.md",
         "Combined list includes the paginate off-by-one and page_count floor bugs",
         "Combined list includes report.py load() crash on malformed/blank lines",
         "No code under paginate/ or report/ was edited",
-        "Any Herdr panes created were closed"
+        "Each worker report was bound with output: under /tmp/fuji/"
       ]
     },
     {

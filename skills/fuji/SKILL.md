@@ -1,11 +1,11 @@
 ---
 name: fuji
-description: Tiny rigorous engineering mode forked from poteto-mode, merged with Karpathy's coding guidelines. Check the sandbox boundary first, surface assumptions, keep diffs surgical, restate the goal and smallest change, name the data shape before code, prove it works on the real artifact, and delegate through one resolved subagent backend (named backend, then Herdr, then pi-subagents, then inline). Use for /fuji, "fuji mode", or when the user asks to work rigorously, fan out workers, or run agents in parallel panes with Herdr or pi-subagents.
+description: Tiny rigorous engineering mode forked from poteto-mode, merged with Karpathy's coding guidelines. Check the sandbox boundary first, surface assumptions, keep diffs surgical, restate the goal and smallest change, name the data shape before code, prove it works on the real artifact, and delegate through pi-subagents (inline only when it is unavailable). Use for /fuji, "fuji mode", or when the user asks to work rigorously, fan out workers, or run agents in parallel with pi-subagents.
 ---
 
 # Fuji
 
-A small fork of pstack's poteto-mode, merged with Karpathy's CLAUDE.md guidelines. Less code, higher quality, verified. The test: every changed line traces to the user's request. Invoking fuji authorizes delegation and Herdr control for this task; it does not authorize irreversible actions.
+A small fork of pstack's poteto-mode, merged with Karpathy's CLAUDE.md guidelines. Less code, higher quality, verified. The test: every changed line traces to the user's request. Invoking fuji authorizes delegation through pi-subagents for this task; it does not authorize irreversible actions.
 
 Children read `worker.md` in this folder. Put its absolute path on the first line of every brief.
 
@@ -20,7 +20,7 @@ Run this once per task, before the first build, install, or network command. If 
    - each cwd a child will run in, such as a worktree
 2. **Diff.** Compare the inventory with `sandbox_status`. Settle any doubt with a cheap probe such as `cargo fetch`, `gh api user`, or `git ls-remote`, not with a full build.
 3. **Configure.** Add only the missing entries to the project file, `.pi/sandbox.json`. Its arrays merge with the global file's, so the project file holds just the difference. Never edit the global file, `denyWrite`, `"*"`, or `network.disabled`. Put the proposal in the same message as the plan questions so the user answers once. After writing the file, ask for a reload. Then rerun `sandbox_status` and the probes. The project file loads only for trusted projects.
-4. **Carry it to children.** The project file is read from each session's own cwd, and grants are not passed between sessions. Copy `.pi/sandbox.json` into every worktree before spawning a child there. The child also needs write access to its report path.
+4. **Carry it to children.** The project file is read from each session's own cwd, and grants are not passed between sessions. A managed worktree is checked out from git, so an uncommitted `.pi/sandbox.json` is missing there: commit it, or keep the child in the shared cwd. The child also needs write access to its `output:` path.
 5. **Name what stays closed.** When something cannot be opened, such as the keychain, state the fallback, for example git over ssh instead of `gh`, or ask. Ask whether `.pi/` should be committed; until the user answers, add it to `.git/info/exclude`.
 
 ## Rules
@@ -49,11 +49,11 @@ Saying no is allowed. If a simpler approach exists or an idea does not earn its 
 
 ### Oracle role
 
-When a backend resolves to Herdr or pi-subagents, the main session is the oracle. It does five things: Boundary, plan and tickets, briefs, dispatch, and accepting results. Children do all the rest: codebase and web research, edits, builds, tests, prototypes, and review.
+With pi-subagents, the main session is the oracle. It does five things: Boundary, plan and tickets, briefs, dispatch, and accepting results. Children do all the rest: codebase and web research, edits, builds, tests, prototypes, and review.
 
 - Read a file yourself only to write a brief or check a diff. Never edit project files yourself.
 - "The context is already loaded" and "a brief costs more than the work" are not reasons to work inline. Small tickets still go to a child, and several small tickets can share one brief.
-- Work inline only when the backend is Inline or the user says so for this task.
+- Work inline only when the `subagent` tool is unavailable or the user says so for this task. Say which in one line. If a launch fails, stop and report; do not fall back silently.
 
 ### Loop per ticket
 
@@ -61,9 +61,9 @@ When a backend resolves to Herdr or pi-subagents, the main session is the oracle
 research → worker → fresh reviewer → (fix worker → fresh reviewer)* → accept
 ```
 
-The loop is the same on every backend. Roles are researcher, worker, and reviewer. On Herdr each role is a fresh pane started with `scripts/herdr-spawn.sh`, and the role lives in the brief.
+Agents: `scout` for codebase recon, `researcher` for the web, `worker` for edits, `reviewer` for review. Each step is a fresh child.
 
-1. **Research.** Send a researcher for the codebase, the web, or both in parallel. Skip this step only when the brief can already name every file and fact the worker needs.
+1. **Research.** Send `scout`, `researcher`, or both in parallel. Skip this step only when the brief can already name every file and fact the worker needs.
 2. **Work.** Record `BASE=$(git rev-parse HEAD)` in the ledger before dispatching. One worker per ticket. Its brief has the goal, the acceptance check, file pointers, and the research report's path.
 3. **Review.** Write `git diff BASE` to a file in the ticket directory. A fresh reviewer gets that diff, the brief path, the worker report path, and the acceptance check. Each finding cites the failed check, the exact command, and its output; the oracle reruns it and drops what does not reproduce.
 4. **Fix.** Confirmed findings go to a fresh worker with the original brief, the prior report, and the findings. Re-review only verifies the fixes; new findings on untouched code go to the ledger, not the loop. After 3 failed rounds, stop and apply rule 8, or ask the user.
@@ -73,37 +73,16 @@ Tickets that don't depend on each other run their loops in parallel, each writer
 
 One ledger per task at `/tmp/fuji/<task>/ledger.md`: the tickets, the role → model table, BASE/HEAD per ticket, the round count, and each decision as `decision — why — evidence path`. A session taking over reads the ledger first and resumes from it instead of redoing work; it still verifies inherited claims on the real artifact.
 
-### Resolve the backend once per task
-
-Pick the first that matches and say which in one line:
-
-1. **Named.** The user named a backend or agent kind ("use codex", "via pi-subagents", "herdr claude"). Use exactly that. If it fails, stop and report; do not fall back silently.
-2. **Herdr.** `test "${HERDR_ENV:-}" = 1 && command -v herdr` succeeds.
-3. **pi-subagents.** A `subagent` tool is available.
-4. **Inline.** None of the above. Do the work yourself and say delegation was unavailable. This is the only backend where the main session writes code.
-
-### Herdr
-
-Use `scripts/herdr-spawn.sh` in this folder. It puts the child in a children tab without stealing focus, starts the agent, sends the brief, and waits.
-
-```bash
-scripts/herdr-spawn.sh <name> <kind> <brief-file> [timeout-ms] [--cwd DIR] [-- agent-args...]
-```
-
-- Herdr has no agent roles, so the brief carries the role. Its first lines say "Role: researcher", "Role: worker", or "Role: reviewer", and spell out what that role does in the loop.
-- `--cwd` starts the child in a worktree. Agent args pass through to the agent, for example `-- --model claude-code/claude-sonnet-5-5` for a cheaper worker model.
-- For parallel children, run each spawn in the background with `&` in one shell, then `wait`. Do not poll with `sleep`.
-
-- `kind` is any kind `herdr agent` lists (pi, claude, codex, gemini, cursor, opencode, ...). Default `pi` unless the user named another. If the kind's CLI is not on PATH, report it and stop; this counts as a named-backend failure.
-- Write the brief to `/tmp/fuji/<name>/brief.md`. Ask the child to write its report to `report.md` beside the brief and reply only with that path. The script deletes any stale report before prompting and exits 4 with the agent's tail if no report appears; treat that as a failed child and retry fresh. Read the report file, not the TUI scrollback.
-- Names match `[a-z][a-z0-9_-]{0,31}` and are unique among live agents.
-- Children live in one children tab per oracle pane, labelled `fuji-<oracle pane>`, in the oracle's workspace. The script creates it with `--no-focus` and splits the largest pane in it; the oracle's tab and focus stay untouched.
-- Close children with `scripts/herdr-close.sh <name-or-pane...>` after reading their reports. A tab disappears with its last pane.
-- For more than the full Herdr control surface, read the `herdr` skill.
-
 ### pi-subagents
 
-Use the built-in agents `scout`, `researcher`, `worker`, and `reviewer` for the loop steps. `subagent({ agent, task })` runs one child, and `workflow: "parallel"` runs independent ones. A dependent chain such as worker → reviewer runs as one async scripted workflow. Launches are async; native completion wakes you, so do not poll. Bind reports with `output:` instead of naming a file in the task text.
+- One child: `subagent({ agent, task, model, output })`. Independent children: `workflow: "parallel"`.
+- A dependent chain such as worker → reviewer is one async scripted workflow: `runs.run` in sequence, or `runs.lanes` with one lane per ticket. Launch only inside it.
+- Launches are async. Native completion wakes you; do not poll or `bg_wait`.
+- Bind each report with `output: "/tmp/fuji/<task>/<ticket>/<role>.md"`, not a path in the task text.
+- Put the acceptance check on the worker as `gate: "<command>"`. The host runs it and records evidence; `ok` alone does not prove the work happened.
+- Parallel writers run with `worktree: true`. The gate runs inside that worktree.
+- Children reach the oracle through `contact_supervisor`. Answer with `subagent_supervisor` reply; a child waiting on you does not burn its timeout. Keep workflows with such children `async: true`.
+- A live child that drifts gets `steer`, not a second child beside it.
 
 ### Every child
 
@@ -111,7 +90,7 @@ Use the built-in agents `scout`, `researcher`, `worker`, and `reviewer` for the 
 - No pasted history: file pointers, the interfaces sibling tickets depend on, and your ruling on any ambiguity.
 - A child's reply ends with one status: DONE, DONE_WITH_CONCERNS, NEEDS_CONTEXT, or BLOCKED. Answer NEEDS_CONTEXT with a fresh child and more context; it is not a failed round.
 - A missing or empty report is a gap, never a pass. Respawn once, then record the gap.
-- Pass a model for every child explicitly: pi-subagents `model:`, Herdr `-- --model ...`. Use the planned model; an omitted model inherits the oracle's. Never retry a rejected slug. Name the model each role ran.
+- Pass `model:` for every child explicitly. Use the planned model; an omitted model inherits the oracle's. Never retry a rejected slug. Name the model each role ran.
 - One writer per working tree. Parallel writers get separate worktrees.
 - You own the result. Read the diff yourself before accepting it.
 
